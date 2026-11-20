@@ -1,9 +1,21 @@
-from fastapi import FastAPI,HTTPException
-from pydantic import Field,BaseModel
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import Field, BaseModel
 
+app = FastAPI(
+    title="Student Management APP",
+    version="3.1518",
+    description="Student Management App, Control student details"
+)
 
-app = FastAPI(title="Student Management APP",version="3.1518",description="Student Management App,Control student details")
-
+# অন্য যেকোনো জায়গা থেকে API রিকোয়েস্ট এলাউ করার জন্য CORS সেটআপ
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 student = [
     {"id": 1, "name": "Rahim", "roll": 710256, "age": 21, "department": "cse", "gpa": 3.75, "status": "Pass"},
@@ -28,109 +40,73 @@ student = [
     {"id": 20, "name": "Maliha", "roll": 710275, "age": 20, "department": "cse", "gpa": 3.70, "status": "Pass"}
 ]
 
-# 03.student list data post
-@app.post("/student",status_code=201)
-def student_create(new_student:dict):
-     new_student["id"] =len(student) +1
-     student.append(new_student)
-     return {"massage":"Student Created","data":new_student}
+# 00. Home route (কেউ মূল লিংকে ঢুকলে স্বাগতম মেসেজ দেখাবে)
+@app.get("/")
+def home():
+    return {"message": "Welcome to Student Management API! Go to /docs to test endpoints."}
 
-# 01 . get all student 
+# 03. student list data post
+@app.post("/student", status_code=201)
+def student_create(new_student: dict):
+    new_student["id"] = len(student) + 1
+    student.append(new_student)
+    return {"message": "Student Created", "data": new_student}
+
+# 01. get all student 
 @app.get("/student")
 def student_get():
-     return {"massage":"student get successfully","student":student}
+    return {"message": "student get successfully", "student": student}
 
 # 07. get pass student
 @app.get("/student/pass")
 def student_pass():
-     pass_list = []
-     for stud in student:
-          if stud["gpa"] >= 2.00:
-               pass_list.append(stud)
-     if pass_list:
-          return {"message":"Pass student list","total":len(pass_list)}
-     raise HTTPException(status_code=404,detail="No pass student found")
+    pass_list = [stud for stud in student if stud.get("gpa", 0) >= 2.00]
+    if pass_list:
+        return {"message": "Pass student list", "total": len(pass_list), "data": pass_list}
+    raise HTTPException(status_code=404, detail="No pass student found")
 
-# 08 get fail student
+# 08. get fail student
 @app.get("/student/fail")
 def student_fail():
-     fail_list =[]
-     for stud in student:
-          if stud["gpa"] < 2.00:
-               fail_list.append(stud)
-     if fail_list:
-          return {"message":"Fail student list","total":len(fail_list)}
-     raise HTTPException(status_code=404,detail="No fail student found")
+    fail_list = [stud for stud in student if stud.get("gpa", 0) < 2.00]
+    if fail_list:
+        return {"message": "Fail student list", "total": len(fail_list), "data": fail_list}
+    raise HTTPException(status_code=404, detail="No fail student found")
 
 # 02. one id student list get student data
 @app.get("/student/{student_id}")
-def get_student_one_item(student_id:int):
-     for stud in student:
-          if stud["id"] == student_id:
-               return stud
-     raise HTTPException(status_code=404, detail="Student not found")
-               
-# 04.put student 
-@app.put("/student/{student_id}")
-def student_update(student_id:int,student_update:dict):
-     for stud in student:
-          if stud["id"] == student_id:
-               stud.clear()
-               stud.update(student_update)
-               stud["id"] = student_id
-               return {"message":"student updaded","data":stud}
-     raise HTTPException(status_code=404,detail="student not found")
+def get_student_one_item(student_id: int):
+    for stud in student:
+        if stud["id"] == student_id:
+            return stud
+    raise HTTPException(status_code=404, detail="Student not found")
 
-# 06.patch student item
+# 04. put student 
+@app.put("/student/{student_id}")
+def student_update(student_id: int, student_update: dict):
+    for stud in student:
+        if stud["id"] == student_id:
+            stud.clear()
+            stud.update(student_update)
+            stud["id"] = student_id
+            return {"message": "student updated", "data": stud}
+    raise HTTPException(status_code=404, detail="student not found")
+
+# 06. patch student item
 @app.patch("/student/{student_id}")
-def student_patch(student_id:int,student_data:dict):
-     for stud in student:
-          if stud["id"] == student_id:
-               stud.update(student_data)
-               stud["id"] = student_id
-               return {"message":"student partilly update","data":stud}
-     raise HTTPException(status_code=404,detail="Student not found")     
+def student_patch(student_id: int, student_data: dict):
+    for stud in student:
+        if stud["id"] == student_id:
+            stud.update(student_data)
+            stud["id"] = student_id
+            return {"message": "student partially updated", "data": stud}
+    raise HTTPException(status_code=404, detail="Student not found")
 
 # 05. delete student item
 @app.delete("/student/{student_id}")
-def student_delete(student_id:int):
-     for stud in student:
-          if stud["id"] == student_id:
-               student.remove(stud)
-               return {"message":"student delete","data":stud}
-     raise HTTPException(status_code=404,detail="student not found")    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+def student_delete(student_id: int):
+    for stud in student:
+        if stud["id"] == student_id:
+            student.remove(stud)
+            return {"message": "student deleted", "data": stud}
+    raise HTTPException(status_code=404, detail="student not found")
